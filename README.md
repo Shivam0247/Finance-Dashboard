@@ -1,115 +1,151 @@
-# Finance Dashboard
+# 💰 FinanceDash - Full-Stack Financial Dashboard
 
-A full-stack financial management application with role-based access control, interactive charts, and a polished dark UI.
+FinanceDash is a professional-grade, full-stack financial management application. It features a modern dark-themed UI, real-time data visualization, and a robust backend with multi-role access control.
 
-## Technology Stack
+---
 
-- **Backend**: Node.js, Express, PostgreSQL
-- **Frontend**: React, Vite, Tailwind CSS, Recharts
-- **Authentication**: JWT (Stateless)
-- **Validation**: Zod
-- **Testing**: Jest, Supertest, Fast-check
+## 🏗️ System Architecture
 
-## Architecture
-
+### **Overall Workflow**
 ```mermaid
 graph TD
-    Browser["Browser (React + Vite)"]
-    AxiosInstance["Axios Instance\n(interceptors)"]
-    ExpressApp["Express App"]
-    AuthMW["JWT Auth Middleware"]
-    RoleGuard["RoleGuard Middleware"]
-    RateLimiter["RateLimiter\n(express-rate-limit)"]
-    Helmet["Helmet Middleware"]
-    Validator["Zod Validator"]
-    AuthCtrl["AuthController"]
-    TxCtrl["TransactionController"]
-    DashCtrl["DashboardController"]
-    UserCtrl["UserController"]
-    AuthSvc["AuthService"]
-    TxSvc["TransactionService"]
-    DashSvc["DashboardService"]
-    UserSvc["UserService"]
-    PgPool["pg.Pool"]
-    PostgreSQL["PostgreSQL DB"]
+    subgraph Frontend
+        React["React (SPA)"]
+        Axios["Axios (Interceptors)"]
+    end
 
-    Browser --> AxiosInstance
-    AxiosInstance --> ExpressApp
-    ExpressApp --> Helmet
-    ExpressApp --> RateLimiter
-    ExpressApp --> AuthMW
-    AuthMW --> RoleGuard
-    RoleGuard --> Validator
-    Validator --> AuthCtrl
-    Validator --> TxCtrl
-    Validator --> DashCtrl
-    Validator --> UserCtrl
-    AuthCtrl --> AuthSvc
-    TxCtrl --> TxSvc
-    DashCtrl --> DashSvc
-    UserCtrl --> UserSvc
-    AuthSvc --> PgPool
-    TxSvc --> PgPool
-    DashSvc --> PgPool
-    UserSvc --> PgPool
-    PgPool --> PostgreSQL
+    subgraph Backend
+        Express["Express App"]
+        Auth["Auth Middleware"]
+        Roles["Role Middleware"]
+        Limiter["Rate Limiter"]
+        Routes["API Routes"]
+        Controllers["Controllers"]
+        Services["Service Layer"]
+    end
+
+    subgraph Database
+        DB["PostgreSQL (Supabase)"]
+    end
+
+    React --> Axios
+    Axios --> Limiter
+    Limiter --> Auth
+    Auth --> Roles
+    Roles --> Routes
+    Routes --> Controllers
+    Controllers --> Services
+    Services --> DB
 ```
 
-## API Endpoints
+1.  **Frontend (React + Vite)**: A responsive SPA using Tailwind CSS for styling and Recharts for interactive data visualization.
+2.  **API Layer (Axios)**: Centralized API instance with interceptors for automatic JWT injection and 401 error handling.
+3.  **Backend (Node.js + Express)**: A structured RESTful API with distinct layers for routing, validation, and business logic.
+4.  **Database (PostgreSQL)**: A relational schema optimized for financial transactions and user management.
 
-| Method | Path | Auth | Roles | Description |
-|--------|------|------|-------|-------------|
-| POST | `/api/auth/login` | No | — | Login and get JWT |
-| GET | `/api/transactions` | Yes | admin, analyst, viewer | List transactions (paginated) |
-| POST | `/api/transactions` | Yes | admin, analyst | Create new transaction |
-| PUT | `/api/transactions/:id` | Yes | admin, analyst | Update existing transaction |
-| DELETE | `/api/transactions/:id` | Yes | admin, analyst | Soft-delete transaction |
-| GET | `/api/dashboard/summary` | Yes | admin, analyst, viewer | Summary statistics |
-| GET | `/api/dashboard/categories` | Yes | admin, analyst, viewer | Category-wise totals |
-| GET | `/api/dashboard/trends` | Yes | admin, analyst, viewer | Monthly income/expense trends |
-| GET | `/api/dashboard/recent` | Yes | admin, analyst, viewer | 10 most recent transactions |
-| GET | `/api/users` | Yes | admin | List all users |
-| PUT | `/api/users/:id/role` | Yes | admin | Update user role |
-| PUT | `/api/users/:id/status` | Yes | admin | Update user account status |
+### **Backend Folder Structure**
+- `src/controllers`: Business logic and database interaction coordination.
+- `src/middleware`: Auth checks, role guards, and global error handlers.
+- `src/routes`: API endpoint definitions.
+- `src/validators`: Request body/param validation using Zod.
+- `src/database`: SQL migrations and seeding scripts.
 
-## Role Permissions
+---
 
-| Role | Dashboard | Transactions (Read) | Transactions (Write) | User Management |
-|------|-----------|---------------------|----------------------|-----------------|
-| Admin | ✅ | ✅ | ✅ | ✅ |
-| Analyst | ✅ | ✅ | ✅ | ❌ |
-| Viewer | ✅ | ✅ | ❌ | ❌ |
+## 🛠️ Technology Stack
 
-## Setup Instructions
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Tailwind CSS, Lucide React, Recharts |
+| **Backend** | Node.js, TypeScript, Express |
+| **Database** | PostgreSQL (Supabase Cloud / Local) |
+| **Security** | JWT, BcryptJS, Helmet, Rate Limiter |
+| **Validation** | Zod |
 
-### Prerequisites
-- Node.js (v18+)
-- PostgreSQL
+---
 
-### Backend Setup
-1. `cd backend`
-2. `npm install`
-3. Create `.env` from `.env.example` and update `DATABASE_URL`
-4. `npm run migrate` (Run migrations)
-5. `npm run seed` (Load demo data)
-6. `npm run dev` (Start development server)
+## 🚦 Role-Based Access Control (RBAC)
 
-### Frontend Setup
-1. `cd frontend`
-2. `npm install`
-3. `npm run dev` (Start Vite dev server)
+| Feature | Admin | Analyst | Viewer |
+| :--- | :---: | :---: | :---: |
+| **Dashboard Charts** | ✅ | ✅ | ✅ |
+| **View Transactions** | ✅ | ✅ | ✅ |
+| **Add/Edit Transactions** | ✅ | ✅ | ❌ |
+| **Delete Transactions** | ✅ | ✅ | ❌ |
+| **User Management** | ✅ | ❌ | ❌ |
+| **Edit/Delete Users** | ✅ | ❌ | ❌ |
 
-## Demo Credentials
+---
 
-| Email | Password | Role |
-|-------|----------|------|
-| `admin@finance.dev` | `Admin@123` | Admin |
-| `analyst@finance.dev` | `Analyst@123` | Analyst |
-| `viewer@finance.dev` | `Viewer@123` | Viewer |
+## 📡 API Reference
 
-## Assumptions & Tradeoffs
+### **Authentication**
+- `POST /api/auth/login`: Authenticate and receive a JWT.
 
-- **No ORM**: Raw SQL was used for transparency and to avoid abstraction overhead.
-- **Soft Deletes**: Transactions use `deleted_at` to preserve history while keeping them "removed" from the UI.
-- **JWT Storage**: Tokens are stored in `localStorage` for simplicity in this MVP, though HttpOnly cookies would be more secure for production.
-- **Stateless Auth**: No server-side session store is required, making the API easier to scale.
+### **Dashboard**
+- `GET /api/dashboard/summary`: Get overall financial totals.
+- `GET /api/dashboard/categories`: Get category-wise spending.
+- `GET /api/dashboard/trends`: Get monthly income vs expense trends.
+- `GET /api/dashboard/recent`: Get the 10 most recent transactions.
+
+### **Transactions**
+- `GET /api/transactions`: List transactions (supports pagination, date filters, type, and category search).
+- `POST /api/transactions`: Create a new entry.
+- `PUT /api/transactions/:id`: Update an entry.
+- `DELETE /api/transactions/:id`: Soft-delete an entry.
+
+### **User Management (Admin Only)**
+- `GET /api/users`: List all users (supports search).
+- `POST /api/users`: Create a new user.
+- `PUT /api/users/:id`: Update user details (name, email, role).
+- `DELETE /api/users/:id`: Permanently delete a user and their data.
+- `PUT /api/users/:id/status`: Toggle active/inactive status.
+
+---
+
+## 🚀 Getting Started
+
+### **1. Prerequisites**
+- **Node.js** (v18 or higher)
+- **PostgreSQL** instance (Local or Supabase)
+
+### **2. Database Setup**
+1. Create a PostgreSQL database.
+2. In the `backend/.env` file, set your `DATABASE_URL`:
+   ```env
+   DATABASE_URL=postgresql://user:password@host:port/db?sslmode=require
+   ```
+
+### **3. Backend Installation**
+```bash
+cd backend
+npm install
+npm run migrate  # Setup tables
+npm run seed     # Load realistic production-ready data
+npm run dev      # Start development server
+```
+
+### **4. Frontend Installation**
+```bash
+cd frontend
+npm install
+npm run dev      # Start Vite server
+```
+
+---
+
+## 🔒 Production Security Features
+
+- **Rate Limiting**: 100 requests per minute per IP to prevent brute force.
+- **SSL Enforcement**: Automatic SSL configuration for cloud database connections.
+- **Data Integrity**: SQL transactions ensure atomic user/transaction deletions.
+- **Password Hashing**: BcryptJS with salt rounds for secure credential storage.
+- **XSS Protection**: Helmet.js headers and sanitized React rendering.
+
+---
+
+## 👥 Default Production Credentials
+
+- **Admin**: `admin@finance.dev` / `Admin@123`
+- **Analyst**: `analyst@finance.dev` / `Analyst@123`
+- **Viewer**: `viewer@finance.dev` / `Viewer@123`
