@@ -5,33 +5,31 @@ const migrate = async () => {
   try {
     console.log('Starting migration...');
 
-    // Users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        name        TEXT        NOT NULL,
-        email       TEXT        UNIQUE NOT NULL,
-        password    TEXT        NOT NULL,
-        role        TEXT        NOT NULL CHECK (role IN ('admin', 'analyst', 'viewer')),
-        status      TEXT        NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'viewer',
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // Transactions table
     await client.query(`
       CREATE TABLE IF NOT EXISTS transactions (
-        id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id     UUID        NOT NULL REFERENCES users(id),
-        amount      NUMERIC     NOT NULL,
-        type        TEXT        NOT NULL CHECK (type IN ('income', 'expense')),
-        category    TEXT        NOT NULL,
-        date        DATE        NOT NULL,
-        notes       TEXT,
-        deleted_at  TIMESTAMPTZ,
-        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id),
+        amount DECIMAL(15, 2) NOT NULL,
+        type VARCHAR(10) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        date DATE NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP WITH TIME ZONE
       );
     `);
 

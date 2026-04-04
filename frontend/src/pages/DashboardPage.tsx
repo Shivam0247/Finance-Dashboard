@@ -84,12 +84,6 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-heading mb-2">Financial Overview</h1>
-        <p className="text-slate-400">Track your income, expenses, and trends</p>
-      </div>
-
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Income"
@@ -123,7 +117,6 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Area Chart - Trends */}
         <div className="lg:col-span-2 bg-background-secondary p-6 rounded-2xl border border-slate-800">
           <h2 className="text-xl font-heading mb-6">Income & Expense Trends</h2>
           <div className="h-80 w-full">
@@ -179,7 +172,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Pie Chart - Categories */}
         <div className="bg-background-secondary p-6 rounded-2xl border border-slate-800">
           <h2 className="text-xl font-heading mb-6">Category Breakdown</h2>
           <div className="h-64 w-full">
@@ -227,7 +219,6 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Transactions */}
       <div className="bg-background-secondary rounded-2xl border border-slate-800 overflow-hidden">
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <h2 className="text-xl font-heading">Recent Transactions</h2>

@@ -63,15 +63,11 @@ export class TransactionService {
       params.push(`%${category}%`);
     }
 
-    // Get total count for pagination
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
-    const totalResult = await pool.query(countQuery, params);
-    const total = parseInt(totalResult.rows[0].count, 10);
+    const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) AS count`, params);
+    const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated data
-    query += ` ORDER BY date DESC, created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
-
     const result = await pool.query<Transaction>(query, params);
 
     return {

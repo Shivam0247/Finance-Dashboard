@@ -12,23 +12,19 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
-              
-              {/* Admin only routes */}
+
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route path="/users" element={<UsersPage />} />
               </Route>
             </Route>
           </Route>
 
-          {/* Redirects */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

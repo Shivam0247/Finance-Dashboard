@@ -16,7 +16,6 @@ export const Layout: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
       <aside className="w-64 bg-background-secondary border-r border-slate-800 flex flex-col">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-accent p-2 rounded-lg text-white">
@@ -31,10 +30,9 @@ export const Layout: React.FC = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-accent/10 text-accent font-medium'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                  ? 'bg-accent/10 text-accent font-medium'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`
               }
             >
@@ -64,7 +62,6 @@ export const Layout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto bg-background">
         <div className="p-8">
           <Outlet />

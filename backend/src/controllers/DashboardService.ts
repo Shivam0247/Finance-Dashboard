@@ -14,9 +14,9 @@ export interface CategoryTotal {
 }
 
 export interface MonthlyTrend {
-  month: string; // 'YYYY-MM'
+  month: string;
   income: number;
-  expenses: number;
+  expense: number;
 }
 
 export class DashboardService {
@@ -64,7 +64,7 @@ export class DashboardService {
       SELECT 
         m.month,
         COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income,
-        COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expenses
+        COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expense
       FROM months m
       LEFT JOIN transactions t ON TO_CHAR(t.date, 'YYYY-MM') = m.month AND t.deleted_at IS NULL
       GROUP BY m.month
@@ -73,8 +73,8 @@ export class DashboardService {
     const result = await pool.query(query);
     return result.rows.map((row) => ({
       month: row.month,
-      income: parseFloat(row.income),
-      expenses: parseFloat(row.expenses),
+      income: parseFloat(row.income) || 0,
+      expense: parseFloat(row.expense) || 0
     }));
   }
 

@@ -53,7 +53,6 @@ router.delete(
     try {
       const idToDelete = req.params.id as string;
 
-      // Prevent user from deleting themselves
       if (req.user?.id === idToDelete) {
         throw new AppError('You cannot delete your own account', 400);
       }

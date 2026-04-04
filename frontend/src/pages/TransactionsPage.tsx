@@ -22,7 +22,6 @@ export const TransactionsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
   const [page, setPage] = useState(1);
   const [type, setType] = useState<string>('');
   const [category, setCategory] = useState('');
@@ -30,17 +29,18 @@ export const TransactionsPage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Debounce category search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedCategory(category);
-      setPage(1); // Reset to first page on search
     }, 300);
 
     return () => clearTimeout(handler);
   }, [category]);
 
-  // Modal state
+  useEffect(() => {
+    setPage(1);
+  }, [type, debouncedCategory, startDate, endDate]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
@@ -105,7 +105,6 @@ export const TransactionsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Filters Bar */}
       <div className="bg-background-secondary p-4 rounded-2xl border border-slate-800 flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Category</label>
@@ -169,7 +168,6 @@ export const TransactionsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Transactions Table */}
       <div className="bg-background-secondary rounded-2xl border border-slate-800 overflow-hidden relative">
         {loading && (
           <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
@@ -252,7 +250,6 @@ export const TransactionsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Pagination */}
             <div className="p-6 border-t border-slate-800 flex items-center justify-between">
               <p className="text-sm text-slate-500">
                 Showing <span className="text-white">{(page - 1) * (data?.limit || 10) + 1}</span> to <span className="text-white">{Math.min(page * (data?.limit || 10), data?.total || 0)}</span> of <span className="text-white">{data?.total || 0}</span> results

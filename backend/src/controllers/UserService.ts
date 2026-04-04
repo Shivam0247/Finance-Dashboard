@@ -21,7 +21,6 @@ export class UserService {
     static async create(userData: { name: string; email: string; password: string; role: Role }): Promise<PublicUser> {
         const { name, email, password, role } = userData;
 
-        // Check if user already exists
         const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
         if (existingUser.rowCount && existingUser.rowCount > 0) {
             throw new AppError('User already exists with this email', 400);
@@ -73,7 +72,6 @@ export class UserService {
             params.push(data.name);
         }
         if (data.email) {
-            // Check if email is already taken by another user
             const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [data.email, id]);
             if (existing.rowCount && existing.rowCount > 0) {
                 throw new AppError('Email already taken', 400);
@@ -117,12 +115,10 @@ export class UserService {
         try {
             await client.query('BEGIN');
 
-            // 1. Delete user's transactions first (due to foreign key constraint)
             await client.query('DELETE FROM transactions WHERE user_id = $1', [id]);
 
-            // 2. Delete the user
             const result = await client.query('DELETE FROM users WHERE id = $1', [id]);
-            
+
             if (result.rowCount === 0) {
                 throw new AppError('User not found', 404);
             }

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Login
 export const loginSchema = z.object({
   body: z.object({
     email: z.string().email(),
@@ -8,8 +7,7 @@ export const loginSchema = z.object({
   }),
 });
 
-// Create/Update Transaction
-export const transactionSchema = z.object({
+export const createTransactionSchema = z.object({
   body: z.object({
     amount: z.number().positive(),
     type: z.enum(['income', 'expense']),
@@ -19,19 +17,17 @@ export const transactionSchema = z.object({
   }),
 });
 
-// Transaction list query
-export const transactionQuerySchema = z.object({
+export const getTransactionsSchema = z.object({
   query: z.object({
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+    page: z.string().optional().transform(val => val ? parseInt(val) : 1),
+    limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
     type: z.enum(['income', 'expense']).optional(),
     category: z.string().optional(),
-    page: z.coerce.number().int().positive().optional().default(1),
-    limit: z.coerce.number().int().positive().optional().default(10),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
   }),
 });
 
-// User role update
 export const updateRoleSchema = z.object({
   params: z.object({
     id: z.string().uuid(),
@@ -41,7 +37,6 @@ export const updateRoleSchema = z.object({
   }),
 });
 
-// User status update
 export const updateStatusSchema = z.object({
   params: z.object({
     id: z.string().uuid(),
@@ -51,7 +46,6 @@ export const updateStatusSchema = z.object({
   }),
 });
 
-// Create User
 export const createUserSchema = z.object({
   body: z.object({
     name: z.string().min(1),
@@ -61,7 +55,6 @@ export const createUserSchema = z.object({
   }),
 });
 
-// Update User
 export const updateUserSchema = z.object({
   params: z.object({
     id: z.string().uuid(),

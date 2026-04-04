@@ -34,7 +34,6 @@ export const UsersPage: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -71,7 +70,7 @@ export const UsersPage: React.FC = () => {
       setFormData({
         name: user.name,
         email: user.email,
-        password: '', // Password not editable here
+        password: '',
         role: user.role
       });
     } else {
@@ -85,7 +84,6 @@ export const UsersPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (editingUser) {
-        // Update user
         const updateData = {
           name: formData.name,
           email: formData.email,
@@ -94,7 +92,6 @@ export const UsersPage: React.FC = () => {
         const response = await api.put(`/users/${editingUser.id}`, updateData);
         setUsers(users.map(u => u.id === editingUser.id ? response.data : u));
       } else {
-        // Create user
         const response = await api.post('/users', formData);
         setUsers([...users, response.data]);
       }

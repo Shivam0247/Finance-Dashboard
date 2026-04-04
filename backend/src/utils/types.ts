@@ -4,7 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // never returned in API responses
+  password: string;
   role: Role;
   status: 'active' | 'inactive';
   created_at: string;
@@ -19,11 +19,11 @@ export interface Transaction {
   amount: number;
   type: 'income' | 'expense';
   category: string;
-  date: string; // ISO date string
+  date: string;
   notes?: string;
-  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string;
 }
 
 export interface JwtPayload {
@@ -38,9 +38,6 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
 }
-
-// Express Request extension
-import { Request } from 'express';
 
 declare global {
   namespace Express {
