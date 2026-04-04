@@ -9,33 +9,63 @@ FinanceDash is a professional-grade, full-stack financial management application
 ### **Overall Workflow**
 ```mermaid
 graph TD
-    subgraph Frontend
-        React["React (SPA)"]
-        Axios["Axios (Interceptors)"]
+    %% Define Styles
+    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef backend fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef database fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
+    classDef security fill:#ef4444,stroke:#b91c1c,stroke-width:2px,color:#fff;
+
+    %% Client Layer
+    subgraph Client ["💻 Client Side (React + Vite)"]
+        UI["UI Components (Tailwind)"]
+        State["Auth Context"]
+        Axios["Axios Interceptors\n(JWT Injection)"]
     end
 
-    subgraph Backend
-        Express["Express App"]
-        Auth["Auth Middleware"]
-        Roles["Role Middleware"]
-        Limiter["Rate Limiter"]
+    %% Gateway Layer
+    subgraph Gateway ["🛡️ API Gateway & Security"]
+        Limiter["Rate Limiter\n(100 req/min)"]
+        Helmet["Helmet.js\n(Security Headers)"]
+        CORS["CORS Policy"]
+    end
+
+    %% Backend Layer
+    subgraph Server ["⚙️ Backend Server (Express + TS)"]
+        AuthMW["Authentication MW\n(JWT Verify)"]
+        RoleGuard["RBAC Middleware\n(Role Check)"]
+        Validator["Zod Validator\n(Schema Validation)"]
         Routes["API Routes"]
-        Controllers["Controllers"]
-        Services["Service Layer"]
+        Controllers["Controllers\n(Request Handling)"]
+        Services["Service Layer\n(Business Logic)"]
     end
 
-    subgraph Database
-        DB["PostgreSQL (Supabase)"]
+    %% Persistence Layer
+    subgraph Storage ["🗄️ Persistence Layer"]
+        Pool["pg.Pool\n(Connection Management)"]
+        DB[("PostgreSQL\n(Supabase Cloud)")]
     end
 
-    React --> Axios
-    Axios --> Limiter
-    Limiter --> Auth
-    Auth --> Roles
-    Roles --> Routes
+    %% Relationships
+    UI --> State
+    State --> Axios
+    Axios -- "HTTP Request + Bearer Token" --> Gateway
+    Gateway --> AuthMW
+    AuthMW --> RoleGuard
+    RoleGuard --> Validator
+    Validator --> Routes
     Routes --> Controllers
     Controllers --> Services
-    Services --> DB
+    Services --> Pool
+    Pool --> DB
+    DB -- "SQL Query Result" --> Services
+    Services --> Controllers
+    Controllers -- "JSON Response" --> UI
+
+    %% Assign Classes
+    class UI,State,Axios frontend;
+    class AuthMW,RoleGuard,Validator,Routes,Controllers,Services backend;
+    class Pool,DB database;
+    class Limiter,Helmet,CORS security;
 ```
 
 1.  **Frontend (React + Vite)**: A responsive SPA using Tailwind CSS for styling and Recharts for interactive data visualization.
@@ -121,7 +151,6 @@ graph TD
 cd backend
 npm install
 npm run migrate  # Setup tables
-npm run seed     # Load realistic production-ready data
 npm run dev      # Start development server
 ```
 
