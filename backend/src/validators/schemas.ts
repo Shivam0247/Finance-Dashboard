@@ -50,3 +50,26 @@ export const updateStatusSchema = z.object({
     status: z.enum(['active', 'inactive']),
   }),
 });
+
+// Create User
+export const createUserSchema = z.object({
+  body: z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(6),
+    role: z.enum(['admin', 'analyst', 'viewer']),
+  }),
+});
+
+// Update User
+export const updateUserSchema = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+  body: z.object({
+    name: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    role: z.enum(['admin', 'analyst', 'viewer']).optional(),
+    status: z.enum(['active', 'inactive']).optional(),
+  }),
+});

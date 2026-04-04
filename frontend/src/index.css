@@ -1,6 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0f172a;
+  --color-background-secondary: #1e293b;
+  --color-accent: #10b981;
+  --color-accent-hover: #059669;
+  --font-sans: "DM Sans", sans-serif;
+  --font-heading: Syne, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
 
 @layer base {
   body {

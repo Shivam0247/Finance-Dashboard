@@ -60,7 +60,7 @@ export class TransactionService {
     }
     if (category) {
       query += ` AND category ILIKE $${paramIndex++}`;
-      params.push(category);
+      params.push(`%${category}%`);
     }
 
     // Get total count for pagination

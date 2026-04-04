@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import {
   Plus,
@@ -25,8 +26,19 @@ export const TransactionsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [type, setType] = useState<string>('');
   const [category, setCategory] = useState('');
+  const [debouncedCategory, setDebouncedCategory] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Debounce category search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedCategory(category);
+      setPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [category]);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,7 +51,7 @@ export const TransactionsPage: React.FC = () => {
       const params = new URLSearchParams();
       params.append('page', page.toString());
       if (type) params.append('type', type);
-      if (category) params.append('category', category);
+      if (debouncedCategory) params.append('category', debouncedCategory);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
@@ -51,7 +63,7 @@ export const TransactionsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, type, category, startDate, endDate]);
+  }, [page, type, debouncedCategory, startDate, endDate]);
 
   useEffect(() => {
     fetchTransactions();
@@ -211,9 +223,9 @@ export const TransactionsPage: React.FC = () => {
                             {tx.type}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 text-sm text-right font-medium ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'
+                        <td className={`px-6 py-4 text-sm text-right font-medium font-mono ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'
                           }`}>
-                          {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                          {tx.type === 'income' ? '+' : '-'}₹{tx.amount.toLocaleString()}
                         </td>
                         {canWrite && (
                           <td className="px-6 py-4 text-sm text-center">
@@ -266,7 +278,7 @@ export const TransactionsPage: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <TransactionModal
           transaction={editingTransaction}
           onClose={() => setIsModalOpen(false)}
@@ -274,7 +286,8 @@ export const TransactionsPage: React.FC = () => {
             setIsModalOpen(false);
             fetchTransactions();
           }}
-        />
+        />,
+        document.body
       )}
     </div>
   );

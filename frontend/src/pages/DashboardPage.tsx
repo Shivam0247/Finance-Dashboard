@@ -146,16 +146,18 @@ export const DashboardPage: React.FC = () => {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
+                  tick={{ fontFamily: 'var(--font-mono)' }}
                 />
                 <YAxis
                   stroke="#94a3b8"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => `$${val}`}
+                  tickFormatter={(val) => `₹${val}`}
+                  tick={{ fontFamily: 'var(--font-mono)' }}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
                 <Area
@@ -198,12 +200,12 @@ export const DashboardPage: React.FC = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontSize: '12px' }}
                   formatter={(val: unknown) => {
                     const value = Array.isArray(val) ? val[0] : val;
                     if (typeof value === 'number' || typeof value === 'string') {
-                      return `$${Number(value).toFixed(2)}`;
+                      return `₹${Number(value).toFixed(2)}`;
                     }
                     return '';
                   }}
@@ -218,7 +220,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                   <span className="text-slate-400">{cat.category}</span>
                 </div>
-                <span className="text-white font-medium">${cat.total.toLocaleString()}</span>
+                <span className="text-white font-medium font-mono">₹{cat.total.toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -256,9 +258,9 @@ export const DashboardPage: React.FC = () => {
                       {tx.type}
                     </span>
                   </td>
-                  <td className={`px-6 py-4 text-sm text-right font-medium ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'
+                  <td className={`px-6 py-4 text-sm text-right font-medium font-mono ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'
                     }`}>
-                    {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                    {tx.type === 'income' ? '+' : '-'}₹{tx.amount.toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -287,8 +289,8 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bg
       </div>
       <div>
         <p className="text-slate-500 text-sm mb-1">{title}</p>
-        <p className="text-2xl font-heading text-white">
-          {isCurrency ? `$${value.toLocaleString()}` : value.toLocaleString()}
+        <p className="text-2xl font-bold font-mono text-white">
+          {isCurrency ? `₹${value.toLocaleString()}` : value.toLocaleString()}
         </p>
       </div>
     </div>
