@@ -41,8 +41,8 @@ graph TD
 
     %% Persistence Layer
     subgraph Storage ["🗄️ Persistence Layer"]
-        Pool["pg.Pool\n(Connection Management)"]
-        DB[("PostgreSQL\n(Supabase Cloud)")]
+        Mongoose["Mongoose\n(ODM / Schema Management)"]
+        DB[("MongoDB\n(Atlas / Local)")]
     end
 
     %% Relationships
@@ -55,30 +55,32 @@ graph TD
     Validator --> Routes
     Routes --> Controllers
     Controllers --> Services
-    Services --> Pool
-    Pool --> DB
-    DB -- "SQL Query Result" --> Services
+    Services --> Mongoose
+    Mongoose --> DB
+    DB -- "Data Stream" --> Mongoose
+    Mongoose --> Services
     Services --> Controllers
     Controllers -- "JSON Response" --> UI
 
     %% Assign Classes
     class UI,State,Axios frontend;
     class AuthMW,RoleGuard,Validator,Routes,Controllers,Services backend;
-    class Pool,DB database;
+    class Mongoose,DB database;
     class Limiter,Helmet,CORS security;
 ```
 
 1.  **Frontend (React + Vite)**: A responsive SPA using Tailwind CSS for styling and Recharts for interactive data visualization.
 2.  **API Layer (Axios)**: Centralized API instance with interceptors for automatic JWT injection and 401 error handling.
 3.  **Backend (Node.js + Express)**: A structured RESTful API with distinct layers for routing, validation, and business logic.
-4.  **Database (PostgreSQL)**: A relational schema optimized for financial transactions and user management.
+4.  **Database (MongoDB)**: A NoSQL database with Mongoose ODM for structured modeling and validation.
 
 ### **Backend Folder Structure**
 - `src/controllers`: Business logic and database interaction coordination.
 - `src/middleware`: Auth checks, role guards, and global error handlers.
 - `src/routes`: API endpoint definitions.
 - `src/validators`: Request body/param validation using Zod.
-- `src/database`: SQL migrations and seeding scripts.
+- `src/database`: Connection setup and seeding scripts.
+- `src/models`: Mongoose schemas and model definitions.
 
 ---
 
@@ -88,7 +90,8 @@ graph TD
 | :--- | :--- |
 | **Frontend** | React 19, Vite, Tailwind CSS, Lucide React, Recharts |
 | **Backend** | Node.js, TypeScript, Express |
-| **Database** | PostgreSQL (Supabase Cloud / Local) |
+| **Database** | MongoDB (Atlas / Local) |
+| **ODM** | Mongoose |
 | **Security** | JWT, BcryptJS, Helmet, Rate Limiter |
 | **Validation** | Zod |
 
@@ -128,7 +131,7 @@ graph TD
 - `GET /api/users`: List all users (supports search).
 - `POST /api/users`: Create a new user.
 - `PUT /api/users/:id`: Update user details (name, email, role).
-- `DELETE /api/users/:id`: Permanently delete a user and their data.
+- `DELETE /api/users/:id`: Permanently delete a user and their data (including transactions).
 - `PUT /api/users/:id/status`: Toggle active/inactive status.
 
 ---
@@ -137,20 +140,21 @@ graph TD
 
 ### **1. Prerequisites**
 - **Node.js** (v18 or higher)
-- **PostgreSQL** instance (Local or Supabase)
+- **MongoDB** instance (Atlas or Local)
 
 ### **2. Database Setup**
-1. Create a PostgreSQL database.
-2. In the `backend/.env` file, set your `DATABASE_URL`:
+1. Create a MongoDB database.
+2. In the `backend/.env` file, set your `MONGODB_URI`:
    ```env
-   DATABASE_URL=postgresql://user:password@host:port/db?sslmode=require
+   MONGODB_URI=mongodb+srv://user:password@host/db
+   JWT_SECRET=your_jwt_secret
    ```
 
 ### **3. Backend Installation**
 ```bash
 cd backend
 npm install
-npm run migrate  # Setup tables
+npm run seed     # Setup default users and dummy data
 npm run dev      # Start development server
 ```
 
@@ -166,10 +170,10 @@ npm run dev      # Start Vite server
 ## 🔒 Production Security Features
 
 - **Rate Limiting**: 100 requests per minute per IP to prevent brute force.
-- **SSL Enforcement**: Automatic SSL configuration for cloud database connections.
-- **Data Integrity**: SQL transactions ensure atomic user/transaction deletions.
+- **Security Headers**: Helmet.js for protection against common web vulnerabilities.
+- **Data Integrity**: MongoDB sessions for atomic user/transaction deletions.
 - **Password Hashing**: BcryptJS with salt rounds for secure credential storage.
-- **XSS Protection**: Helmet.js headers and sanitized React rendering.
+- **XSS Protection**: Sanitized React rendering and secure API practices.
 
 ---
 
