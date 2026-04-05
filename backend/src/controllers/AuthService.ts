@@ -1,24 +1,22 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../database/pool';
-import { PublicUser, User, JwtPayload } from '../utils/types';
+import User from '../models/User';
+import { PublicUser, JwtPayload } from '../utils/types';
 import { AppError } from '../utils/AppError';
 
 export class AuthService {
     private static readonly SALT_ROUNDS = 10;
-    private static readonly SECRET = process.env.JWT_SECRET || 'fallback_secret';
+
+    private static getSecret(): string {
+        return process.env.JWT_SECRET || 'fallback_secret';
+    }
 
     static async hashPassword(password: string): Promise<string> {
         return bcrypt.hash(password, this.SALT_ROUNDS);
     }
 
     static async login(email: string, password: string): Promise<{ token: string; user: PublicUser }> {
-        const result = await pool.query<User>(
-            'SELECT id, name, email, password, role, status FROM users WHERE email = $1',
-            [email]
-        );
-
-        const user = result.rows[0];
+        const user = await User.findOne({ email });
 
         if (!user) {
             throw new AppError('Invalid credentials', 401);
@@ -40,16 +38,24 @@ export class AuthService {
             role: user.role,
         };
 
-        const token = jwt.sign(payload, this.SECRET, { expiresIn: '1d' });
+        const token = jwt.sign(payload, this.getSecret(), { expiresIn: '1d' });
 
-        const { password: _, ...publicUser } = user;
+        const publicUser: PublicUser = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            created_at: user.created_at.toISOString(),
+            updated_at: user.updated_at.toISOString()
+        };
 
         return { token, user: publicUser };
     }
 
     static verifyToken(token: string): JwtPayload {
         try {
-            return jwt.verify(token, this.SECRET) as JwtPayload;
+            return jwt.verify(token, this.getSecret()) as JwtPayload;
         } catch (error) {
             throw new AppError('Invalid or expired token', 401);
         }

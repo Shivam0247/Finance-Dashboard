@@ -1,5 +1,5 @@
-import pool from '../database/pool';
-import { Transaction } from '../utils/types';
+import Transaction from '../models/Transaction';
+import { Transaction as ITransactionType } from '../utils/types';
 
 export interface DashboardSummary {
   totalIncome: number;
@@ -16,76 +16,112 @@ export interface CategoryTotal {
 export interface MonthlyTrend {
   month: string;
   income: number;
-  expense: number;
+  expenses: number;
 }
 
 export class DashboardService {
+  private static toTransactionType(tx: any): ITransactionType {
+    return {
+      id: tx._id.toString(),
+      user_id: tx.user_id.toString(),
+      amount: tx.amount,
+      type: tx.type,
+      category: tx.category,
+      date: tx.date.toISOString().split('T')[0],
+      notes: tx.notes,
+      created_at: tx.created_at.toISOString(),
+      updated_at: tx.updated_at.toISOString(),
+      deleted_at: tx.deleted_at ? tx.deleted_at.toISOString() : undefined
+    };
+  }
+
   static async getSummary(): Promise<DashboardSummary> {
-    const query = `
-      SELECT 
-        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as income,
-        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as expense,
-        COUNT(*) as count
-      FROM transactions 
-      WHERE deleted_at IS NULL
-    `;
-    const result = await pool.query(query);
-    const { income, expense, count } = result.rows[0];
+    const result = await Transaction.aggregate([
+      { $match: { deleted_at: null } },
+      {
+        $group: {
+          _id: null,
+          income: { $sum: { $cond: [{ $eq: ['$type', 'income'] }, '$amount', 0] } },
+          expense: { $sum: { $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0] } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const { income = 0, expense = 0, count = 0 } = result[0] || {};
 
     return {
-      totalIncome: parseFloat(income),
-      totalExpenses: parseFloat(expense),
-      netBalance: parseFloat(income) - parseFloat(expense),
-      transactionCount: parseInt(count, 10),
+      totalIncome: income,
+      totalExpenses: expense,
+      netBalance: income - expense,
+      transactionCount: count,
     };
   }
 
   static async getCategories(): Promise<CategoryTotal[]> {
-    const query = `
-      SELECT category, SUM(amount) as total
-      FROM transactions
-      WHERE deleted_at IS NULL
-      GROUP BY category
-      ORDER BY total DESC
-    `;
-    const result = await pool.query(query);
-    return result.rows.map((row) => ({
-      category: row.category,
-      total: parseFloat(row.total),
+    const result = await Transaction.aggregate([
+      { $match: { deleted_at: null } },
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { total: -1 } }
+    ]);
+
+    return result.map((row) => ({
+      category: row._id,
+      total: row.total,
     }));
   }
 
   static async getTrends(): Promise<MonthlyTrend[]> {
-    const query = `
-      WITH months AS (
-        SELECT TO_CHAR(CURRENT_DATE - INTERVAL '1 month' * s.i, 'YYYY-MM') as month
-        FROM generate_series(0, 5) AS s(i)
-      )
-      SELECT 
-        m.month,
-        COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income,
-        COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expense
-      FROM months m
-      LEFT JOIN transactions t ON TO_CHAR(t.date, 'YYYY-MM') = m.month AND t.deleted_at IS NULL
-      GROUP BY m.month
-      ORDER BY m.month ASC
-    `;
-    const result = await pool.query(query);
-    return result.rows.map((row) => ({
-      month: row.month,
-      income: parseFloat(row.income) || 0,
-      expense: parseFloat(row.expense) || 0
-    }));
+    const sixMonthsAgo = new Date();
+    // Start of the month six months ago
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5, 1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const result = await Transaction.aggregate([
+      {
+        $match: {
+          deleted_at: null,
+          date: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$date' } },
+          income: { $sum: { $cond: [{ $eq: ['$type', 'income'] }, '$amount', 0] } },
+          expense: { $sum: { $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0] } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Fill in missing months if necessary
+    const trends: MonthlyTrend[] = [];
+    for (let i = 0; i < 6; i++) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (5 - i));
+      const monthStr = date.toISOString().split('T')[0].substring(0, 7);
+
+      const found = result.find(r => r._id === monthStr);
+      trends.push({
+        month: monthStr,
+        income: found ? found.income : 0,
+        expenses: found ? found.expense : 0
+      });
+    }
+
+    return trends;
   }
 
-  static async getRecent(): Promise<Transaction[]> {
-    const query = `
-      SELECT * FROM transactions
-      WHERE deleted_at IS NULL
-      ORDER BY date DESC, created_at DESC
-      LIMIT 10
-    `;
-    const result = await pool.query<Transaction>(query);
-    return result.rows;
+  static async getRecent(): Promise<ITransactionType[]> {
+    const transactions = await Transaction.find({ deleted_at: null })
+      .sort({ date: -1, created_at: -1 })
+      .limit(10);
+
+    return transactions.map(tx => this.toTransactionType(tx));
   }
 }

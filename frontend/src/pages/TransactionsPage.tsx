@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import axios, { AxiosError } from 'axios';
 import api from '../api/axios';
 import {
   Plus,
@@ -58,8 +59,17 @@ export const TransactionsPage: React.FC = () => {
       const response = await api.get(`/transactions?${params.toString()}`);
       setData(response.data);
     } catch (err: unknown) {
-      console.error(err);
-      setError('Failed to load transactions');
+      console.error('Fetch Transactions Error:', err);
+      let message = 'Failed to load transactions';
+      if (axios.isAxiosError(err)) {
+        const axiosError = err as AxiosError<{ message?: string; errors?: string[] }>;
+        console.error('API Error Response:', axiosError.response?.data);
+        message = `Failed to load transactions: ${axiosError.response?.data?.message || axiosError.message}`;
+        if (axiosError.response?.data?.errors) {
+          message += ` (${axiosError.response.data.errors.join(', ')})`;
+        }
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }

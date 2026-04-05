@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, Receipt, Loader2, AlertCircle } from 'lucide-react';
 import type { Transaction } from '../utils/types';
 
@@ -84,7 +84,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Income"
           value={summary?.totalIncome || 0}
@@ -153,9 +153,17 @@ export const DashboardPage: React.FC = () => {
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={36}
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: '12px', paddingBottom: '10px' }}
+                />
                 <Area
                   type="monotone"
                   dataKey="income"
+                  name="Income"
                   stroke="#10b981"
                   fillOpacity={1}
                   fill="url(#colorIncome)"
@@ -163,6 +171,7 @@ export const DashboardPage: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="expenses"
+                  name="Expenses"
                   stroke="#ef4444"
                   fillOpacity={1}
                   fill="url(#colorExpenses)"
@@ -205,14 +214,14 @@ export const DashboardPage: React.FC = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 space-y-2 max-h-32 overflow-y-auto pr-2">
+          <div className="mt-4 space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
             {categories.map((cat, index) => (
-              <div key={cat.category} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                  <span className="text-slate-400">{cat.category}</span>
+              <div key={cat.category} className="flex items-center justify-between text-sm gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                  <span className="text-slate-400 truncate">{cat.category}</span>
                 </div>
-                <span className="text-white font-medium font-mono">₹{cat.total.toLocaleString()}</span>
+                <span className="text-white font-medium font-mono whitespace-nowrap">₹{cat.total.toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -240,7 +249,7 @@ export const DashboardPage: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-slate-300">
                     {new Date(tx.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-sm text-white font-medium">
+                  <td className="px-6 py-4 text-sm text-white font-medium truncate max-w-[150px]">
                     {tx.category}
                   </td>
                   <td className="px-6 py-4 text-sm">
@@ -274,13 +283,13 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bg, isCurrency = true }) => {
   return (
-    <div className="bg-background-secondary p-6 rounded-2xl border border-slate-800 flex items-center gap-6">
-      <div className={`${bg} ${color} p-4 rounded-xl`}>
-        <Icon size={24} />
+    <div className="bg-background-secondary p-5 rounded-2xl border border-slate-800 flex items-center gap-4 min-w-0">
+      <div className={`${bg} ${color} p-3 rounded-xl shrink-0`}>
+        <Icon size={20} />
       </div>
-      <div>
-        <p className="text-slate-500 text-sm mb-1">{title}</p>
-        <p className="text-2xl font-bold font-mono text-white">
+      <div className="min-w-0">
+        <p className="text-slate-500 text-xs mb-1 truncate">{title}</p>
+        <p className="text-lg sm:text-xl lg:text-2xl font-bold font-mono text-white truncate leading-none">
           {isCurrency ? `₹${value.toLocaleString()}` : value.toLocaleString()}
         </p>
       </div>

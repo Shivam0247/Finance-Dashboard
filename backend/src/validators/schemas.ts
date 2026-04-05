@@ -21,7 +21,7 @@ export const getTransactionsSchema = z.object({
   query: z.object({
     page: z.string().optional().transform(val => val ? parseInt(val) : 1),
     limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
-    type: z.enum(['income', 'expense']).optional(),
+    type: z.enum(['income', 'expense']).or(z.literal('')).optional().transform(val => val === '' ? undefined : val),
     category: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
@@ -30,7 +30,7 @@ export const getTransactionsSchema = z.object({
 
 export const updateRoleSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().min(1),
   }),
   body: z.object({
     role: z.enum(['admin', 'analyst', 'viewer']),
@@ -39,7 +39,7 @@ export const updateRoleSchema = z.object({
 
 export const updateStatusSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().min(1),
   }),
   body: z.object({
     status: z.enum(['active', 'inactive']),
@@ -57,7 +57,7 @@ export const createUserSchema = z.object({
 
 export const updateUserSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().min(1),
   }),
   body: z.object({
     name: z.string().min(1).optional(),

@@ -1,134 +1,141 @@
-import pool from '../database/pool';
+import User from '../models/User';
+import Transaction from '../models/Transaction';
 import { PublicUser, Role } from '../utils/types';
 import { AppError } from '../utils/AppError';
 import { AuthService } from './AuthService';
+import mongoose from 'mongoose';
 
 export class UserService {
+    private static toPublicUser(user: any): PublicUser {
+        return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            created_at: user.created_at.toISOString(),
+            updated_at: user.updated_at.toISOString()
+        };
+    }
+
     static async findAll(search?: string): Promise<PublicUser[]> {
-        let query = 'SELECT id, name, email, role, status, created_at, updated_at FROM users';
-        const params: any[] = [];
+        let query: any = {};
 
         if (search) {
-            query += ' WHERE name ILIKE $1 OR email ILIKE $1';
-            params.push(`%${search}%`);
+            query = {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            };
         }
 
-        query += ' ORDER BY name ASC';
-        const result = await pool.query<PublicUser>(query, params);
-        return result.rows;
+        const users = await User.find(query).sort({ name: 1 });
+        return users.map(user => this.toPublicUser(user));
     }
 
     static async create(userData: { name: string; email: string; password: string; role: Role }): Promise<PublicUser> {
         const { name, email, password, role } = userData;
 
-        const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-        if (existingUser.rowCount && existingUser.rowCount > 0) {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             throw new AppError('User already exists with this email', 400);
         }
 
         const hashedPassword = await AuthService.hashPassword(password);
 
-        const result = await pool.query<PublicUser>(
-            'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, status, created_at, updated_at',
-            [name, email, hashedPassword, role]
-        );
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            role
+        });
 
-        return result.rows[0]!;
+        return this.toPublicUser(user);
     }
 
     static async updateRole(id: string, role: Role): Promise<PublicUser> {
-        const result = await pool.query<PublicUser>(
-            'UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, email, role, status, created_at, updated_at',
-            [role, id]
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new AppError('Invalid user ID', 400);
+        }
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { role, updated_at: new Date() },
+            { new: true, runValidators: true }
         );
 
-        if (result.rowCount === 0) {
+        if (!user) {
             throw new AppError('User not found', 404);
         }
 
-        return result.rows[0]!;
+        return this.toPublicUser(user);
     }
 
     static async updateStatus(id: string, status: 'active' | 'inactive'): Promise<PublicUser> {
-        const result = await pool.query<PublicUser>(
-            'UPDATE users SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, email, role, status, created_at, updated_at',
-            [status, id]
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new AppError('Invalid user ID', 400);
+        }
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { status, updated_at: new Date() },
+            { new: true, runValidators: true }
         );
 
-        if (result.rowCount === 0) {
+        if (!user) {
             throw new AppError('User not found', 404);
         }
 
-        return result.rows[0]!;
+        return this.toPublicUser(user);
     }
 
     static async update(id: string, data: { name?: string; email?: string; role?: Role; status?: 'active' | 'inactive' }): Promise<PublicUser> {
-        const fields: string[] = [];
-        const params: any[] = [id];
-        let paramIndex = 2;
-
-        if (data.name) {
-            fields.push(`name = $${paramIndex++}`);
-            params.push(data.name);
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new AppError('Invalid user ID', 400);
         }
+
         if (data.email) {
-            const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [data.email, id]);
-            if (existing.rowCount && existing.rowCount > 0) {
+            const existing = await User.findOne({ email: data.email });
+            if (existing && existing._id.toString() !== id) {
                 throw new AppError('Email already taken', 400);
             }
-            fields.push(`email = $${paramIndex++}`);
-            params.push(data.email);
-        }
-        if (data.role) {
-            fields.push(`role = $${paramIndex++}`);
-            params.push(data.role);
-        }
-        if (data.status) {
-            fields.push(`status = $${paramIndex++}`);
-            params.push(data.status);
         }
 
-        if (fields.length === 0) {
-            throw new AppError('No fields to update', 400);
-        }
+        const user = await User.findByIdAndUpdate(
+            id,
+            { ...data, updated_at: new Date() },
+            { new: true, runValidators: true }
+        );
 
-        fields.push(`updated_at = NOW()`);
-
-        const query = `
-            UPDATE users 
-            SET ${fields.join(', ')} 
-            WHERE id = $1 
-            RETURNING id, name, email, role, status, created_at, updated_at
-        `;
-
-        const result = await pool.query<PublicUser>(query, params);
-
-        if (result.rowCount === 0) {
+        if (!user) {
             throw new AppError('User not found', 404);
         }
 
-        return result.rows[0]!;
+        return this.toPublicUser(user);
     }
 
     static async delete(id: string): Promise<void> {
-        const client = await pool.connect();
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new AppError('Invalid user ID', 400);
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
-            await client.query('BEGIN');
+            await Transaction.deleteMany({ user_id: id }).session(session);
+            const result = await User.findByIdAndDelete(id).session(session);
 
-            await client.query('DELETE FROM transactions WHERE user_id = $1', [id]);
-
-            const result = await client.query('DELETE FROM users WHERE id = $1', [id]);
-
-            if (result.rowCount === 0) {
+            if (!result) {
                 throw new AppError('User not found', 404);
             }
 
-            await client.query('COMMIT');
+            await session.commitTransaction();
         } catch (error) {
-            await client.query('ROLLBACK');
+            await session.abortTransaction();
             throw error;
         } finally {
-            client.release();
+            session.endSession();
         }
     }
 }

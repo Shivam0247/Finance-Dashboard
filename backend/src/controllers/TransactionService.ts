@@ -1,6 +1,7 @@
-import pool from '../database/pool';
-import { Transaction, PaginatedResult } from '../utils/types';
+import Transaction from '../models/Transaction';
+import { Transaction as ITransactionType, PaginatedResult } from '../utils/types';
 import { AppError } from '../utils/AppError';
+import mongoose from 'mongoose';
 
 export interface TransactionFilters {
   startDate?: string;
@@ -28,111 +29,115 @@ export interface UpdateTransactionDto {
 }
 
 export class TransactionService {
-  static async create(userId: string, data: CreateTransactionDto): Promise<Transaction> {
-    const result = await pool.query<Transaction>(
-      `INSERT INTO transactions (user_id, amount, type, category, date, notes)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [userId, data.amount, data.type, data.category, data.date, data.notes]
-    );
-    return result.rows[0]!;
+  private static toTransactionType(tx: any): ITransactionType {
+    return {
+      id: tx._id.toString(),
+      user_id: tx.user_id.toString(),
+      amount: tx.amount,
+      type: tx.type,
+      category: tx.category,
+      date: tx.date.toISOString().split('T')[0],
+      notes: tx.notes,
+      created_at: tx.created_at.toISOString(),
+      updated_at: tx.updated_at.toISOString(),
+      deleted_at: tx.deleted_at ? tx.deleted_at.toISOString() : undefined
+    };
   }
 
-  static async findAll(filters: TransactionFilters): Promise<PaginatedResult<Transaction>> {
+  static async create(userId: string, data: CreateTransactionDto): Promise<ITransactionType> {
+    const tx = await Transaction.create({
+      user_id: new mongoose.Types.ObjectId(userId),
+      amount: data.amount,
+      type: data.type,
+      category: data.category,
+      date: new Date(data.date),
+      notes: data.notes
+    });
+    return this.toTransactionType(tx);
+  }
+
+  static async findAll(filters: TransactionFilters): Promise<PaginatedResult<ITransactionType>> {
     const { startDate, endDate, type, category, page = 1, limit = 10 } = filters;
-    const offset = (page - 1) * limit;
 
-    let query = 'SELECT * FROM transactions WHERE deleted_at IS NULL';
-    const params: any[] = [];
-    let paramIndex = 1;
+    const query: any = { deleted_at: null };
 
-    if (startDate) {
-      query += ` AND date >= $${paramIndex++}`;
-      params.push(startDate);
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        if (isNaN(start.getTime())) {
+          throw new AppError('Invalid start date format', 400);
+        }
+        start.setHours(0, 0, 0, 0);
+        query.date.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        if (isNaN(end.getTime())) {
+          throw new AppError('Invalid end date format', 400);
+        }
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
     }
-    if (endDate) {
-      query += ` AND date <= $${paramIndex++}`;
-      params.push(endDate);
-    }
+
     if (type) {
-      query += ` AND type = $${paramIndex++}`;
-      params.push(type);
+      query.type = type;
     }
+
     if (category) {
-      query += ` AND category ILIKE $${paramIndex++}`;
-      params.push(`%${category}%`);
+      // Escape special characters for regex
+      const escapedCategory = category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.category = { $regex: escapedCategory, $options: 'i' };
     }
 
-    const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) AS count`, params);
-    const total = parseInt(countResult.rows[0].count);
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
 
-    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
-    const result = await pool.query<Transaction>(query, params);
+    const total = await Transaction.countDocuments(query);
+    console.log('Total documents matching query:', total);
+    
+    const transactions = await Transaction.find(query)
+      .sort({ date: -1, created_at: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+
+    console.log('Transactions found:', transactions.length);
 
     return {
-      data: result.rows,
+      data: transactions.map(tx => this.toTransactionType(tx)),
       total,
       page,
       limit,
     };
   }
 
-  static async update(id: string, data: UpdateTransactionDto): Promise<Transaction> {
-    const fields: string[] = [];
-    const params: any[] = [id];
-    let paramIndex = 2;
-
-    if (data.amount !== undefined) {
-      fields.push(`amount = $${paramIndex++}`);
-      params.push(data.amount);
-    }
-    if (data.type !== undefined) {
-      fields.push(`type = $${paramIndex++}`);
-      params.push(data.type);
-    }
-    if (data.category !== undefined) {
-      fields.push(`category = $${paramIndex++}`);
-      params.push(data.category);
-    }
-    if (data.date !== undefined) {
-      fields.push(`date = $${paramIndex++}`);
-      params.push(data.date);
-    }
-    if (data.notes !== undefined) {
-      fields.push(`notes = $${paramIndex++}`);
-      params.push(data.notes);
+  static async update(id: string, data: UpdateTransactionDto): Promise<ITransactionType> {
+    const updateData: any = { ...data, updated_at: new Date() };
+    if (data.date) {
+      updateData.date = new Date(data.date);
     }
 
-    if (fields.length === 0) {
-      throw new AppError('No fields to update', 400);
-    }
+    const tx = await Transaction.findOneAndUpdate(
+      { _id: id, deleted_at: null },
+      updateData,
+      { new: true }
+    );
 
-    fields.push(`updated_at = NOW()`);
-
-    const query = `
-      UPDATE transactions
-      SET ${fields.join(', ')}
-      WHERE id = $1 AND deleted_at IS NULL
-      RETURNING *
-    `;
-
-    const result = await pool.query<Transaction>(query, params);
-
-    if (result.rowCount === 0) {
+    if (!tx) {
       throw new AppError('Transaction not found', 404);
     }
 
-    return result.rows[0]!;
+    return this.toTransactionType(tx);
   }
 
   static async softDelete(id: string): Promise<void> {
-    const result = await pool.query(
-      'UPDATE transactions SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
-      [id]
+    const result = await Transaction.findOneAndUpdate(
+      { _id: id, deleted_at: null },
+      { deleted_at: new Date() }
     );
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new AppError('Transaction not found', 404);
     }
   }
